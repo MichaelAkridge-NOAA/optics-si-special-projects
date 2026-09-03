@@ -8,6 +8,74 @@ This repository is organized as a shared team workspace for marine imagery and c
 
 The goal of this workspace is to support reproducible, reviewable, and collaborative model development for underwater imagery tasks such as species detection, bleaching assessment, and habitat monitoring.
 
+## Optics SI Cloud Training Workflow (Advanced)
+
+<a href="" target="_blank"><img src="./docs/workflow.png" align="right" alt="workflow"/></a>
+
+
+## Project Structure
+
+### `project/`
+This is the shared home for cross-project team materials.
+
+- common standards and review checklists
+- team documentation and process notes
+- shared collaboration resources
+- archive and planning materials
+
+See [project/README.md](project/README.md) for the default structure and guidance.
+
+### `templates/`
+This folder is intended for reusable project starting points.
+
+- a standard YOLO training starter
+- simple project scaffolding for new project
+- repeatable training and organization patterns
+
+See [templates/README.md](templates/README.md) for the default template setup.
+
+---
+
+## Active Projects
+
+### Urchins
+A multi-class detector for identifying important urchin taxa in benthic imagery.
+
+- Focus: ecological monitoring and species classification
+- Classes: CHGI, DISP, ECMA, ECST, ECTH, EUME, HEMA, PAGR, TRGR
+- Workspace: `project/urchins/multi-class/`
+- Active version: `project/urchins/multi-class/v1/`
+
+### SERDP
+A single-class detector for invasive species monitoring within the SERDP effort.
+
+- Focus: early identification and monitoring of invasive taxa
+- Current area: `project/SERDP/unomia/`
+
+### ESA
+Environmental species assessment models for coral monitoring and classification tasks.
+
+#### AGLO Model
+- Single-class detector
+- Target class: AGLO
+- Workspace: `project/ESA/ESA_AGLO/`
+#### ICRA Model
+- Single-class detector
+- Target class: ICRA
+- Workspace: `project/ESA/ESA_ICRA/`
+- Links:
+  - Model card: https://huggingface.co/NMFS-OSI/yolo11m-esa-coral-icra-detector
+  - Training dataset: https://huggingface.co/datasets/NMFS-OSI/NOAA-PIFSC-ESD-ESA-CORAL-ICRA-Dataset
+  - Model demo: https://huggingface.co/spaces/NMFS-OSI/ESA-Coral-ICRA-Detector-Demo
+
+### Bleaching
+A reef condition modeling workflow focused on bleaching-related classes.
+
+- Focus: bleaching-state detection and assessment
+- Workspace: `project/bleaching/three-class-model/`
+
+---
+
 ## Repository Layout
 
 ```text
@@ -26,69 +94,6 @@ optics-si-special-projects/
   docs/
   scripts/
 ```
-
-## Shared Project Structure
-
-### `project/`
-This is the shared home for cross-project team materials.
-
-- common standards and review checklists
-- team documentation and process notes
-- shared collaboration resources
-- archive and planning materials
-
-See [teams/README.md](teams/README.md) for the default structure and guidance.
-
-### `templates/`
-This folder is intended for reusable project starting points.
-
-- a standard YOLO training starter
-- simple project scaffolding for new teams
-- repeatable training and organization patterns
-
-See [templates/README.md](templates/README.md) for the default template setup.
-
----
-
-## Active Projects
-
-### Urchins
-A multi-class detector for identifying important urchin taxa in benthic imagery.
-
-- Focus: ecological monitoring and species classification
-- Classes: CHGI, DISP, ECMA, ECST, ECTH, EUME, HEMA, PAGR, TRGR
-- Workspace: `teams/urchins/multi-class/`
-- Active version: `teams/urchins/multi-class/v1/`
-
-### SERDP
-A single-class detector for invasive species monitoring within the SERDP effort.
-
-- Focus: early identification and monitoring of invasive taxa
-- Current area: `teams/SERDP/unomia/`
-
-### ESA
-Environmental species assessment models for coral monitoring and classification tasks.
-
-#### AGLO Model
-- Single-class detector
-- Target class: AGLO
-- Workspace: `teams/ESA/ESA_AGLO/`
-#### ICRA Model
-- Single-class detector
-- Target class: ICRA
-- Workspace: `teams/ESA/ESA_ICRA/`
-- Links:
-  - Model card: https://huggingface.co/NMFS-OSI/yolo11m-esa-coral-icra-detector
-  - Training dataset: https://huggingface.co/datasets/NMFS-OSI/NOAA-PIFSC-ESD-ESA-CORAL-ICRA-Dataset
-  - Model demo: https://huggingface.co/spaces/NMFS-OSI/ESA-Coral-ICRA-Detector-Demo
-
-### Bleaching
-A reef condition modeling workflow focused on bleaching-related classes.
-
-- Focus: bleaching-state detection and assessment
-- Workspace: `teams/bleaching/three-class-model/`
-
----
 
 ## Recommended Team Workflow
 
