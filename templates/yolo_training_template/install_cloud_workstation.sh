@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ENV_NAME="${ENV_NAME:-yolo-cloud}"
+PYTHON_VERSION="${PYTHON_VERSION:-3.12}"
+PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
+SHM_SIZE="${SHM_SIZE:-16G}"
+UPDATE_SHM="${UPDATE_SHM:-true}"
+
+log() {
+    printf '\n[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"
+}
+
+if ! command -v conda >/dev/null 2>&1; then
+    printf 'ERROR: conda is required but was not found on PATH.\n' >&2
+    exit 1
+fi
+
+log "Loading conda shell support"
+eval "$(conda shell.bash hook)"
+
+if conda run -n "$ENV_NAME" python --version >/dev/null 2>&1; then
+    log "Reusing conda environment: $ENV_NAME"
+else
+    log "Creating conda environment $ENV_NAME with Python $PYTHON_VERSION"
+    conda create --name "$ENV_NAME" "python=$PYTHON_VERSION" pip -y
+fi
+
+log "Upgrading pip build tools"
+conda run -n "$ENV_NAME" python -m pip install --upgrade pip setuptools wheel
+
+log "Installing CUDA-enabled PyTorch from $PYTORCH_INDEX_URL"
+conda run -n "$ENV_NAME" python -m pip install --upgrade \
+    --index-url "$PYTORCH_INDEX_URL" \
+    torch torchvision torchaudio
+
+log "Installing YOLO, cloud, Label Studio, and Jupyter dependencies"
+conda run -n "$ENV_NAME" python -m pip install --upgrade \
+    'ultralytics>=8.4.92' \
+    'PyYAML>=6.0' \
+    requests \
+    pillow \
+    matplotlib \
+    pandas \
+    label-studio-sdk \
+    google-cloud-storage \
+    ipykernel \
+    jupyterlab
+
+log "Registering the conda environment as a Jupyter kernel"
+conda run -n "$ENV_NAME" python -m ipykernel install --user \
+    --name "$ENV_NAME" \
+    --display-name "Python ($ENV_NAME)"
+
+log "Checking optional workstation tools"
+if command -v gcloud >/dev/null 2>&1; then
+    gcloud --version | head -n 1
+else
+    printf 'WARNING: gcloud was not found. Install Google Cloud CLI before using GCS cells.\n' >&2
+fi
+
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=name,driver_version,memory.total \
+        --format=csv,noheader
+else
+    printf 'WARNING: nvidia-smi was not found. This workstation may not expose an NVIDIA GPU.\n' >&2
+fi
+
+if [[ "$UPDATE_SHM" == "true" ]]; then
+    log "Requesting /dev/shm size $SHM_SIZE"
+    if [[ ! -d /dev/shm ]]; then
+        printf 'WARNING: /dev/shm does not exist; skipping shared-memory resize.\n' >&2
+    elif [[ "$(id -u)" -eq 0 ]]; then
+        mount -o remount,size="$SHM_SIZE" /dev/shm || \
+            printf 'WARNING: Could not remount /dev/shm. Update the workstation/container configuration instead.\n' >&2
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo mount -o remount,size="$SHM_SIZE" /dev/shm || \
+            printf 'WARNING: Could not remount /dev/shm. Sudo or container mount privileges may be unavailable.\n' >&2
+    else
+        printf 'WARNING: sudo is unavailable; skipping /dev/shm resize.\n' >&2
+    fi
+fi
+
+log "Verifying the Python training environment"
+conda run -n "$ENV_NAME" python -c \
+    'import torch, ultralytics; print({"torch": torch.__version__, "cuda_available": torch.cuda.is_available(), "ultralytics": ultralytics.__version__})'
+
+if command -v df >/dev/null 2>&1 && [[ -d /dev/shm ]]; then
+    df -h /dev/shm
+fi
+
+cat <<EOF
+
+Setup complete.
+
+1. Refresh JupyterLab in the browser.
+2. Open the notebook and select the "Python ($ENV_NAME)" kernel.
+3. Run: gcloud auth login
+4. Run: gcloud auth application-default login
+
+The /dev/shm remount is runtime-only on many managed workstations and containers.
+Configure the workstation image or container runtime for a persistent shared-memory size.
+EOF

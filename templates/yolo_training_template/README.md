@@ -6,6 +6,9 @@ This template is intended as a starting point for a new detection project. It is
 
 - `train_yolo_template.py` — example training script using Ultralytics YOLO
 - `dataset_template.yaml` — dataset configuration template
+- `01_cloud_yolo_dataset_prep.ipynb` — acquire images and labels, validate YOLO data, create reproducible splits, and publish the preparation handoff
+- `02_cloud_yolo_training.ipynb` — verify the prepared handoff, train with simple or advanced settings, evaluate, resume, and upload artifacts
+- `install_cloud_workstation.sh` — repeatable conda, CUDA PyTorch, JupyterLab kernel, and shared-memory setup for a Linux Cloud Workstation
 
 ## Quick start
 
@@ -13,6 +16,87 @@ This template is intended as a starting point for a new detection project. It is
 2. Update `dataset_template.yaml` with your image paths and class names.
 3. Update the model name, epochs, image size, and batch size in the training script.
 4. Run the training script from the project root.
+
+For cloud-hosted datasets, use the numbered notebooks in order:
+
+1. Run `01_cloud_yolo_dataset_prep.ipynb` when images, labels, classes, or split policy change. It supports a fresh Label Studio API export, an existing YOLO export mirrored to GCS, or a YOLO ZIP uploaded through JupyterLab.
+2. Review the validation report and labeled-image previews. The notebook writes `dataset.yaml`, `split_manifest.json`, and `prep_summary.json` under `workspace/<project>`.
+3. Open `02_cloud_yolo_training.ipynb`, configure the same project/workspace, and verify the preparation handoff before training.
+4. Start with simple training mode. Enable advanced settings only after establishing a baseline.
+
+The training notebook never downloads labels or rebuilds a split. If data changes, return to notebook 1 and create a new preparation handoff.
+
+## Google Cloud Workstation setup
+
+Run these commands in a JupyterLab terminal on the Linux workstation. Download the script first so it can be reviewed before execution:
+
+```bash
+cd ~
+wget -O install_cloud_workstation.sh \
+  https://raw.githubusercontent.com/MichaelAkridge-NOAA/optics-si-special-projects/main/templates/yolo_training_template/install_cloud_workstation.sh
+chmod +x install_cloud_workstation.sh
+less install_cloud_workstation.sh
+./install_cloud_workstation.sh
+```
+
+The default setup creates a Python 3.12 conda environment named `yolo-cloud`, installs CUDA 12.4 PyTorch plus the notebook dependencies, registers a Jupyter kernel, and requests a 16 GB `/dev/shm` mount. It is safe to rerun and reuses the conda environment.
+
+Customize it with environment variables when needed:
+
+```bash
+# Different environment name, Python version, and shared-memory size
+ENV_NAME=serdp-yolo PYTHON_VERSION=3.11 SHM_SIZE=24G \
+  ./install_cloud_workstation.sh
+
+# Skip the shared-memory remount when sudo or mount privileges are unavailable
+UPDATE_SHM=false ./install_cloud_workstation.sh
+
+# Use CPU-only PyTorch on a workstation without an NVIDIA GPU
+PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cpu \
+  ./install_cloud_workstation.sh
+```
+
+The installer uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and then installs Ultralytics, PyYAML, Requests, Pillow, Matplotlib, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab.
+
+After setup:
+
+1. Refresh JupyterLab.
+2. Open `01_cloud_yolo_dataset_prep.ipynb`.
+3. Select **Kernel > Change Kernel > Python (yolo-cloud)**, or the display name matching `ENV_NAME`.
+4. Use the same kernel for `02_cloud_yolo_training.ipynb` and confirm it reports `CUDA available: True` when using a GPU workstation.
+
+### Shared memory notes
+
+Check the current shared-memory allocation with:
+
+```bash
+df -h /dev/shm
+```
+
+The script runs `mount -o remount,size=... /dev/shm` through root or `sudo`. Managed Cloud Workstation containers may not grant mount privileges. The remount is also temporary on many images and is lost after a workstation or container restart. For a persistent setting, update the workstation container/runtime configuration or ask the platform administrator to configure the shared-memory mount. Lower the notebook's `workers` value if shared memory remains constrained.
+
+### Google Cloud authentication
+
+Authenticate in the JupyterLab terminal rather than a notebook cell:
+
+```bash
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project YOUR_PROJECT_ID
+gcloud auth list
+```
+
+For unattended jobs, prefer the workstation's attached service account or workload identity. Do not store service-account keys, API tokens, or other credentials in the repository or notebook.
+
+### Label sources
+
+Set `LABEL_SOURCE_MODE` in the notebook configuration cell:
+
+- `label_studio_api` downloads a fresh YOLO export using `LABEL_STUDIO_API_TOKEN` from the environment.
+- `gcs_export` downloads a YOLO ZIP or directory from `LABEL_EXPORT_GCS_URI`.
+- `user_upload_zip` reads a local ZIP uploaded through JupyterLab. Create an `uploads` folder in the file browser, upload the export, and set `USER_LABEL_ZIP` to its local path.
+
+All ZIP sources use protected extraction and the same image/label integrity checks before training.
 
 ## Example run
 
@@ -25,13 +109,17 @@ python train_yolo_template.py
 ```text
 project_name/
   README.md
-  dataset/
-    images/
-    labels/
-  dataset.yaml
-  scripts/
-    train.py
-  runs/
+  01_cloud_yolo_dataset_prep.ipynb
+  02_cloud_yolo_training.ipynb
+  workspace/
+    project_name/
+      dataset.yaml
+      split_manifest.json
+      prep_summary.json
+      dataset/
+        images/
+        labels/
+      runs/
 ```
 
 ## Notes
