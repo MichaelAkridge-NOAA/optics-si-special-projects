@@ -1,0 +1,4 @@
+ultralytics>=8.4.92
+pandas>=2.0
+PyYAML>=6.0
+torch>=2.0

@@ -1,0 +1,9 @@
+train: ./dataset/images/train
+val: ./dataset/images/val
+
+nc: 1
+names:
+  0: class_name
+
+# Replace the paths above with your project dataset folders.
+# Update the class list and number of classes for your specific task.

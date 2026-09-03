@@ -1,0 +1,16 @@
+/urchins/multi-class/v1/_archive
+/urchins/multi-class/v1/dataset
+/urchins/multi-class/v1/dataset_review_and_split
+/urchins/multi-class/v1/__pycache__
+urchins/multi-class/v1/yolo26n.pt
+.vscode/settings.json
+/urchins/multi-class/v1/training_runs
+urchins/multi-class/v1/yolo26m.pt
+/projects/urchins/multi-class/v1/_archive
+/projects/urchins/multi-class/v1/dataset
+/projects/urchins/multi-class/v1/dataset_review_and_split
+/projects/urchins/multi-class/v1/training_runs
+projects/urchins/multi-class/v1/yolo26n.pt
+projects/urchins/multi-class/v1/yolo26m.pt
+*.pyc
+projects/urchins/multi-class/v0_baseline/20260217 - Urchin v0 Review.pdf
