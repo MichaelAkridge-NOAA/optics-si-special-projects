@@ -11,7 +11,7 @@ REPO_BRANCH="${REPO_BRANCH:-main}"
 REPO_DIR="${REPO_DIR:-$HOME/optics-si-special-projects}"
 ACCEPT_ANACONDA_TOS="${ACCEPT_ANACONDA_TOS:-false}"
 INSTALL_SYSTEM_PACKAGES="${INSTALL_SYSTEM_PACKAGES:-true}"
-NUMPY_SPEC="${NUMPY_SPEC:-numpy<2.0}"
+NUMPY_SPEC="${NUMPY_SPEC:-numpy>=2.2,<2.3}"
 
 log() {
     printf '\n[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"
