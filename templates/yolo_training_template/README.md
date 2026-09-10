@@ -52,6 +52,9 @@ ENV_NAME=serdp-yolo PYTHON_VERSION=3.11 SHM_SIZE=24G \
 # Skip the shared-memory remount when sudo or mount privileges are unavailable
 UPDATE_SHM=false ./install_cloud_workstation.sh
 
+# Skip apt-based system package setup when sudo is unavailable
+INSTALL_SYSTEM_PACKAGES=false ./install_cloud_workstation.sh
+
 # Use CPU-only PyTorch on a workstation without an NVIDIA GPU
 PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cpu \
   ./install_cloud_workstation.sh
@@ -63,7 +66,7 @@ REPO_DIR=~/projects/optics-si-special-projects ./install_cloud_workstation.sh
 ACCEPT_ANACONDA_TOS=true ./install_cloud_workstation.sh
 ```
 
-The installer uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and then installs Ultralytics, PyYAML, Requests, Pillow, Matplotlib, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab.
+The installer uses `apt-get` when available to install common workstation tools and native libraries (`git`, `wget`, `unzip`, `zip`, `libgl1`, `libglib2.0-0`, `libsm6`, and `libxext6`). It then uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and installs Ultralytics, PyYAML, Requests, Pillow, Matplotlib, NumPy, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab. It also runs `pip check` and verifies the notebook imports before reporting setup complete.
 
 If `conda create` stops with `CondaToSNonInteractiveError`, review and accept the Anaconda channel Terms of Service, then rerun the installer:
 
@@ -79,6 +82,22 @@ After setup:
 2. Open `01_cloud_yolo_dataset_prep.ipynb`.
 3. Select **Kernel > Change Kernel > Python (yolo-cloud)**, or the display name matching `ENV_NAME`.
 4. Use the same kernel for `02_cloud_yolo_training.ipynb` and confirm it reports `CUDA available: True` when using a GPU workstation.
+
+If a notebook reports a missing package such as `ModuleNotFoundError: No module named 'matplotlib'`, it is usually using the wrong Python kernel. Run this in a notebook cell:
+
+```python
+import sys
+print(sys.executable)
+```
+
+The path should include the conda environment name, for example `yolo-cloud`. If it does not, select **Kernel > Change Kernel > Python (yolo-cloud)**, then restart the notebook kernel and rerun the cells. If the kernel is not listed, run:
+
+```bash
+conda run -n yolo-cloud python -m ipykernel install --user \
+  --name yolo-cloud \
+  --display-name "Python (yolo-cloud)"
+jupyter kernelspec list
+```
 
 ### Helpful workstation commands
 
@@ -123,6 +142,8 @@ Check the current shared-memory allocation with:
 
 ```bash
 df -h /dev/shm
+
+sudo mount -o remount,size=8G /dev/shm
 ```
 
 The script runs `mount -o remount,size=... /dev/shm` through root or `sudo`. Managed Cloud Workstation containers may not grant mount privileges. The remount is also temporary on many images and is lost after a workstation or container restart. For a persistent setting, update the workstation container/runtime configuration or ask the platform administrator to configure the shared-memory mount. Lower the notebook's `workers` value if shared memory remains constrained.

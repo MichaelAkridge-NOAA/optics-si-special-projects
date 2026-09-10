@@ -10,6 +10,7 @@ REPO_URL="${REPO_URL:-https://github.com/MichaelAkridge-NOAA/optics-si-special-p
 REPO_BRANCH="${REPO_BRANCH:-main}"
 REPO_DIR="${REPO_DIR:-$HOME/optics-si-special-projects}"
 ACCEPT_ANACONDA_TOS="${ACCEPT_ANACONDA_TOS:-false}"
+INSTALL_SYSTEM_PACKAGES="${INSTALL_SYSTEM_PACKAGES:-true}"
 
 log() {
     printf '\n[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"
@@ -18,6 +19,39 @@ log() {
 if ! command -v conda >/dev/null 2>&1; then
     printf 'ERROR: conda is required but was not found on PATH.\n' >&2
     exit 1
+fi
+
+if [[ "$INSTALL_SYSTEM_PACKAGES" == "true" ]]; then
+    if command -v apt-get >/dev/null 2>&1; then
+        log "Installing common workstation system packages"
+        if [[ "$(id -u)" -eq 0 ]]; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                git \
+                wget \
+                unzip \
+                zip \
+                libgl1 \
+                libglib2.0-0 \
+                libsm6 \
+                libxext6
+        elif command -v sudo >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                git \
+                wget \
+                unzip \
+                zip \
+                libgl1 \
+                libglib2.0-0 \
+                libsm6 \
+                libxext6
+        else
+            printf 'WARNING: sudo is unavailable; skipping system package install. Missing libGL/libglib errors may need administrator help.\n' >&2
+        fi
+    else
+        printf 'WARNING: apt-get was not found; skipping system package install.\n' >&2
+    fi
 fi
 
 if ! command -v git >/dev/null 2>&1; then
@@ -86,16 +120,23 @@ conda run -n "$ENV_NAME" python -m pip install --upgrade \
     requests \
     pillow \
     matplotlib \
+    numpy \
     pandas \
     label-studio-sdk \
     google-cloud-storage \
     ipykernel \
     jupyterlab
 
+log "Checking installed Python packages for dependency conflicts"
+conda run -n "$ENV_NAME" python -m pip check
+
 log "Registering the conda environment as a Jupyter kernel"
 conda run -n "$ENV_NAME" python -m ipykernel install --user \
     --name "$ENV_NAME" \
     --display-name "Python ($ENV_NAME)"
+
+log "Checking Jupyter kernel registration"
+conda run -n "$ENV_NAME" python -m jupyter kernelspec list
 
 log "Checking optional workstation tools"
 if command -v gcloud >/dev/null 2>&1; then
@@ -128,7 +169,7 @@ fi
 
 log "Verifying the Python training environment"
 conda run -n "$ENV_NAME" python -c \
-    'import torch, ultralytics; print({"torch": torch.__version__, "cuda_available": torch.cuda.is_available(), "ultralytics": ultralytics.__version__})'
+    'import importlib; modules = ["torch", "ultralytics", "matplotlib", "requests", "yaml", "PIL", "numpy", "pandas", "google.cloud.storage", "label_studio_sdk", "ipykernel", "jupyterlab"]; [importlib.import_module(module) for module in modules]; import torch, ultralytics, matplotlib; print({"torch": torch.__version__, "cuda_available": torch.cuda.is_available(), "ultralytics": ultralytics.__version__, "matplotlib": matplotlib.__version__})'
 
 if command -v df >/dev/null 2>&1 && [[ -d /dev/shm ]]; then
     df -h /dev/shm
@@ -140,8 +181,10 @@ Setup complete.
 
 1. Refresh JupyterLab in the browser.
 2. Open the notebook and select the "Python ($ENV_NAME)" kernel.
-3. Run: gcloud auth login
-4. Run: gcloud auth application-default login
+3. If imports fail in a notebook, confirm the notebook is using this kernel:
+    import sys; print(sys.executable)
+4. Run: gcloud auth login
+5. Run: gcloud auth application-default login
 
 The /dev/shm remount is runtime-only on many managed workstations and containers.
 Configure the workstation image or container runtime for a persistent shared-memory size.
