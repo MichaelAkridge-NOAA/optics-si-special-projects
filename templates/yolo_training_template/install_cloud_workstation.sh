@@ -6,6 +6,9 @@ PYTHON_VERSION="${PYTHON_VERSION:-3.12}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 SHM_SIZE="${SHM_SIZE:-16G}"
 UPDATE_SHM="${UPDATE_SHM:-true}"
+REPO_URL="${REPO_URL:-https://github.com/MichaelAkridge-NOAA/optics-si-special-projects.git}"
+REPO_BRANCH="${REPO_BRANCH:-main}"
+REPO_DIR="${REPO_DIR:-$HOME/optics-si-special-projects}"
 
 log() {
     printf '\n[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"
@@ -14,6 +17,22 @@ log() {
 if ! command -v conda >/dev/null 2>&1; then
     printf 'ERROR: conda is required but was not found on PATH.\n' >&2
     exit 1
+fi
+
+if ! command -v git >/dev/null 2>&1; then
+    printf 'ERROR: git is required but was not found on PATH.\n' >&2
+    exit 1
+fi
+
+log "Syncing project repository into $REPO_DIR"
+if [[ -d "$REPO_DIR/.git" ]]; then
+    git -C "$REPO_DIR" fetch origin "$REPO_BRANCH"
+    git -C "$REPO_DIR" pull --ff-only origin "$REPO_BRANCH"
+elif [[ -e "$REPO_DIR" ]]; then
+    printf 'ERROR: %s exists but is not a git repository. Set REPO_DIR to another path or move it aside.\n' "$REPO_DIR" >&2
+    exit 1
+else
+    git clone --branch "$REPO_BRANCH" "$REPO_URL" "$REPO_DIR"
 fi
 
 log "Loading conda shell support"

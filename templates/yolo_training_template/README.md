@@ -39,7 +39,7 @@ less install_cloud_workstation.sh
 ./install_cloud_workstation.sh
 ```
 
-The default setup creates a Python 3.12 conda environment named `yolo-cloud`, installs CUDA 12.4 PyTorch plus the notebook dependencies, registers a Jupyter kernel, and requests a 16 GB `/dev/shm` mount. It is safe to rerun and reuses the conda environment.
+The default setup clones or fast-forward pulls this repository into `~/optics-si-special-projects`, creates a Python 3.12 conda environment named `yolo-cloud`, installs CUDA 12.4 PyTorch plus the notebook dependencies, registers a Jupyter kernel, and requests a 16 GB `/dev/shm` mount. It is safe to rerun and reuses the conda environment.
 
 Customize it with environment variables when needed:
 
@@ -54,6 +54,9 @@ UPDATE_SHM=false ./install_cloud_workstation.sh
 # Use CPU-only PyTorch on a workstation without an NVIDIA GPU
 PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cpu \
   ./install_cloud_workstation.sh
+
+# Clone or update the repository somewhere else
+REPO_DIR=~/projects/optics-si-special-projects ./install_cloud_workstation.sh
 ```
 
 The installer uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and then installs Ultralytics, PyYAML, Requests, Pillow, Matplotlib, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab.
@@ -64,6 +67,43 @@ After setup:
 2. Open `01_cloud_yolo_dataset_prep.ipynb`.
 3. Select **Kernel > Change Kernel > Python (yolo-cloud)**, or the display name matching `ENV_NAME`.
 4. Use the same kernel for `02_cloud_yolo_training.ipynb` and confirm it reports `CUDA available: True` when using a GPU workstation.
+
+### Helpful workstation commands
+
+Use these in a JupyterLab terminal on the Linux workstation:
+
+```bash
+# Go to the cloned project
+cd ~/optics-si-special-projects
+
+# Pull the latest template and project updates
+git pull --ff-only
+
+# Make folders for uploads, outputs, or a new project workspace
+mkdir -p uploads workspace/my_project
+
+# Copy this template into a new project folder
+cp -r templates/yolo_training_template projects/my_new_project
+
+# List files, including sizes and hidden files
+ls -lah
+
+# Unzip a Label Studio or YOLO export into a folder
+unzip uploads/export.zip -d uploads/export
+
+# Zip a run folder for download or archive
+zip -r yolo_run_archive.zip workspace/my_project/runs
+
+# Check available disk space and shared memory
+df -h
+df -h /dev/shm
+
+# Activate the environment in a terminal shell
+conda activate yolo-cloud
+
+# Start JupyterLab if it is not already running
+jupyter lab --ip=0.0.0.0 --no-browser
+```
 
 ### Shared memory notes
 
