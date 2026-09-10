@@ -32,6 +32,8 @@ Run these commands in a JupyterLab terminal on the Linux workstation. Download t
 
 ```bash
 cd ~
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 wget --no-cache -O install_cloud_workstation.sh \
   https://raw.githubusercontent.com/MichaelAkridge-NOAA/optics-si-special-projects/main/templates/yolo_training_template/install_cloud_workstation.sh
 chmod +x install_cloud_workstation.sh
