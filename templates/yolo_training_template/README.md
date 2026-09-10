@@ -55,6 +55,9 @@ UPDATE_SHM=false ./install_cloud_workstation.sh
 # Skip apt-based system package setup when sudo is unavailable
 INSTALL_SYSTEM_PACKAGES=false ./install_cloud_workstation.sh
 
+# Use a different NumPy constraint if a project needs it
+NUMPY_SPEC='numpy<2.0' ./install_cloud_workstation.sh
+
 # Use CPU-only PyTorch on a workstation without an NVIDIA GPU
 PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cpu \
   ./install_cloud_workstation.sh
@@ -66,7 +69,14 @@ REPO_DIR=~/projects/optics-si-special-projects ./install_cloud_workstation.sh
 ACCEPT_ANACONDA_TOS=true ./install_cloud_workstation.sh
 ```
 
-The installer uses `apt-get` when available to install common workstation tools and native libraries (`git`, `wget`, `unzip`, `zip`, `libgl1`, `libglib2.0-0`, `libsm6`, and `libxext6`). It then uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and installs Ultralytics, PyYAML, Requests, Pillow, Matplotlib, NumPy, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab. It also runs `pip check` and verifies the notebook imports before reporting setup complete.
+The installer uses `apt-get` when available to install common workstation tools and native libraries (`git`, `wget`, `unzip`, `zip`, `libgl1`, `libglib2.0-0`, `libsm6`, and `libxext6`). It then uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and installs Ultralytics, PyYAML, Requests, Pillow, Matplotlib, NumPy, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab. It avoids cached pip wheels, force-reinstalls NumPy with `NUMPY_SPEC='numpy<2.0'` by default, runs `pip check`, and verifies the notebook imports before reporting setup complete.
+
+If verification fails with a NumPy compiled-extension error such as `cannot read file data`, rerun the installer. It will reuse the existing conda environment and repair NumPy with a fresh non-cached wheel. To run just the repair step manually:
+
+```bash
+conda run -n yolo-cloud python -m pip install --force-reinstall --no-cache-dir 'numpy<2.0'
+conda run -n yolo-cloud python -c 'import numpy; print(numpy.__version__)'
+```
 
 If `conda create` stops with `CondaToSNonInteractiveError`, review and accept the Anaconda channel Terms of Service, then rerun the installer:
 

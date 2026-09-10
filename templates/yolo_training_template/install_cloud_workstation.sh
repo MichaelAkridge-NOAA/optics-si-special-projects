@@ -11,6 +11,7 @@ REPO_BRANCH="${REPO_BRANCH:-main}"
 REPO_DIR="${REPO_DIR:-$HOME/optics-si-special-projects}"
 ACCEPT_ANACONDA_TOS="${ACCEPT_ANACONDA_TOS:-false}"
 INSTALL_SYSTEM_PACKAGES="${INSTALL_SYSTEM_PACKAGES:-true}"
+NUMPY_SPEC="${NUMPY_SPEC:-numpy<2.0}"
 
 log() {
     printf '\n[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"
@@ -106,26 +107,29 @@ EOF
 fi
 
 log "Upgrading pip build tools"
-conda run -n "$ENV_NAME" python -m pip install --upgrade pip setuptools wheel
+conda run -n "$ENV_NAME" python -m pip install --upgrade --no-cache-dir pip setuptools wheel
 
 log "Installing CUDA-enabled PyTorch from $PYTORCH_INDEX_URL"
-conda run -n "$ENV_NAME" python -m pip install --upgrade \
+conda run -n "$ENV_NAME" python -m pip install --upgrade --no-cache-dir \
     --index-url "$PYTORCH_INDEX_URL" \
     torch torchvision torchaudio
 
 log "Installing YOLO, cloud, Label Studio, and Jupyter dependencies"
-conda run -n "$ENV_NAME" python -m pip install --upgrade \
+conda run -n "$ENV_NAME" python -m pip install --upgrade --no-cache-dir \
     'ultralytics>=8.4.92' \
     'PyYAML>=6.0' \
     requests \
     pillow \
     matplotlib \
-    numpy \
+    "$NUMPY_SPEC" \
     pandas \
     label-studio-sdk \
     google-cloud-storage \
     ipykernel \
     jupyterlab
+
+log "Repairing NumPy compiled extension install"
+conda run -n "$ENV_NAME" python -m pip install --force-reinstall --no-cache-dir "$NUMPY_SPEC"
 
 log "Checking installed Python packages for dependency conflicts"
 conda run -n "$ENV_NAME" python -m pip check
@@ -169,7 +173,7 @@ fi
 
 log "Verifying the Python training environment"
 conda run -n "$ENV_NAME" python -c \
-    'import importlib; modules = ["torch", "ultralytics", "matplotlib", "requests", "yaml", "PIL", "numpy", "pandas", "google.cloud.storage", "label_studio_sdk", "ipykernel", "jupyterlab"]; [importlib.import_module(module) for module in modules]; import torch, ultralytics, matplotlib; print({"torch": torch.__version__, "cuda_available": torch.cuda.is_available(), "ultralytics": ultralytics.__version__, "matplotlib": matplotlib.__version__})'
+    'import importlib; modules = ["numpy", "torch", "ultralytics", "matplotlib", "requests", "yaml", "PIL", "pandas", "google.cloud.storage", "label_studio_sdk", "ipykernel", "jupyterlab"]; [importlib.import_module(module) for module in modules]; import torch, ultralytics, matplotlib, numpy; print({"python_ok": True, "numpy": numpy.__version__, "torch": torch.__version__, "cuda_available": torch.cuda.is_available(), "ultralytics": ultralytics.__version__, "matplotlib": matplotlib.__version__})'
 
 if command -v df >/dev/null 2>&1 && [[ -d /dev/shm ]]; then
     df -h /dev/shm
