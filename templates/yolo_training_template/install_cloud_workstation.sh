@@ -9,6 +9,7 @@ UPDATE_SHM="${UPDATE_SHM:-true}"
 REPO_URL="${REPO_URL:-https://github.com/MichaelAkridge-NOAA/optics-si-special-projects.git}"
 REPO_BRANCH="${REPO_BRANCH:-main}"
 REPO_DIR="${REPO_DIR:-$HOME/optics-si-special-projects}"
+ACCEPT_ANACONDA_TOS="${ACCEPT_ANACONDA_TOS:-false}"
 
 log() {
     printf '\n[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"
@@ -38,11 +39,36 @@ fi
 log "Loading conda shell support"
 eval "$(conda shell.bash hook)"
 
+if [[ "$ACCEPT_ANACONDA_TOS" == "true" ]]; then
+    log "Accepting Anaconda Terms of Service for default channels"
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+fi
+
 if conda run -n "$ENV_NAME" python --version >/dev/null 2>&1; then
     log "Reusing conda environment: $ENV_NAME"
 else
     log "Creating conda environment $ENV_NAME with Python $PYTHON_VERSION"
-    conda create --name "$ENV_NAME" "python=$PYTHON_VERSION" pip -y
+    create_log="$(mktemp)"
+    if ! conda create --name "$ENV_NAME" "python=$PYTHON_VERSION" pip -y 2>&1 | tee "$create_log"; then
+        if grep -q 'CondaToSNonInteractiveError' "$create_log"; then
+            cat >&2 <<'EOF'
+
+ERROR: Anaconda channel Terms of Service must be accepted before conda can create this environment.
+
+Review the terms, then run either:
+  conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+  conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+  ./install_cloud_workstation.sh
+
+Or rerun this installer with explicit opt-in:
+  ACCEPT_ANACONDA_TOS=true ./install_cloud_workstation.sh
+EOF
+        fi
+        rm -f "$create_log"
+        exit 1
+    fi
+    rm -f "$create_log"
 fi
 
 log "Upgrading pip build tools"

@@ -32,10 +32,9 @@ Run these commands in a JupyterLab terminal on the Linux workstation. Download t
 
 ```bash
 cd ~
-wget -O install_cloud_workstation.sh \
+wget --no-cache -O install_cloud_workstation.sh \
   https://raw.githubusercontent.com/MichaelAkridge-NOAA/optics-si-special-projects/main/templates/yolo_training_template/install_cloud_workstation.sh
 chmod +x install_cloud_workstation.sh
-less install_cloud_workstation.sh
 ./install_cloud_workstation.sh
 ```
 
@@ -57,9 +56,20 @@ PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cpu \
 
 # Clone or update the repository somewhere else
 REPO_DIR=~/projects/optics-si-special-projects ./install_cloud_workstation.sh
+
+# Explicitly accept Anaconda Terms of Service during setup
+ACCEPT_ANACONDA_TOS=true ./install_cloud_workstation.sh
 ```
 
 The installer uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and then installs Ultralytics, PyYAML, Requests, Pillow, Matplotlib, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab.
+
+If `conda create` stops with `CondaToSNonInteractiveError`, review and accept the Anaconda channel Terms of Service, then rerun the installer:
+
+```bash
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+./install_cloud_workstation.sh
+```
 
 After setup:
 
