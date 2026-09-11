@@ -72,7 +72,7 @@ REPO_DIR=~/projects/optics-si-special-projects ./install_cloud_workstation.sh
 ACCEPT_ANACONDA_TOS=true ./install_cloud_workstation.sh
 ```
 
-The installer uses `apt-get` when available to install common workstation tools and native libraries (`git`, `wget`, `unzip`, `zip`, `libgl1`, `libglib2.0-0`, `libsm6`, and `libxext6`). It then uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and installs Ultralytics, OpenCV, PyYAML, Requests, Pillow, Matplotlib, NumPy, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab. It avoids cached pip wheels, force-reinstalls NumPy with `NUMPY_SPEC='numpy>=2.2,<2.3'` and OpenCV with `OPENCV_SPEC='opencv-python-headless>=4.12,<4.13'` by default, runs `pip check`, and verifies the notebook imports before reporting setup complete.
+The installer uses `apt-get` when available to install common workstation tools and native libraries (`git`, `wget`, `unzip`, `zip`, `libgl1`, `libglib2.0-0`, `libsm6`, and `libxext6`). It then uses `conda create`, upgrades `pip`, installs PyTorch separately from the selected PyTorch wheel index, and installs Ultralytics, OpenCV, PyYAML, Requests, Pillow, Matplotlib, NumPy, pandas, Label Studio SDK, Google Cloud Storage, ipykernel, and JupyterLab. It avoids cached pip wheels, force-reinstalls NumPy with `NUMPY_SPEC='numpy>=2.2,<2.3'` and OpenCV with `OPENCV_SPEC='opencv-python-headless>=4.12,<4.13'` by default, registers the `Python (yolo-cloud)` Jupyter kernel, sets matching dataset-prep and training notebooks in the cloned repository to use that kernel by default, runs `pip check`, and verifies the notebook imports before reporting setup complete.
 
 If verification fails with a NumPy or OpenCV compiled-extension error such as `cannot read file data`, rerun the installer. It will reuse the existing conda environment and repair the compiled packages with fresh non-cached wheels. To run just the repair step manually:
 
@@ -94,7 +94,7 @@ After setup:
 
 1. Refresh JupyterLab.
 2. Open `01_cloud_yolo_dataset_prep.ipynb`.
-3. Select **Kernel > Change Kernel > Python (yolo-cloud)**, or the display name matching `ENV_NAME`.
+3. Confirm the selected kernel is **Python (yolo-cloud)**, or the display name matching `ENV_NAME`.
 4. Use the same kernel for `02_cloud_yolo_training.ipynb` and confirm it reports `CUDA available: True` when using a GPU workstation.
 
 If a notebook reports a missing package such as `ModuleNotFoundError: No module named 'matplotlib'`, it is usually using the wrong Python kernel. Run this in a notebook cell:

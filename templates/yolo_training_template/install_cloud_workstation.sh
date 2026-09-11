@@ -145,6 +145,37 @@ conda run -n "$ENV_NAME" python -m ipykernel install --user \
 log "Checking Jupyter kernel registration"
 conda run -n "$ENV_NAME" python -m jupyter kernelspec list
 
+log "Setting default notebook kernel metadata"
+conda run -n "$ENV_NAME" python - "$REPO_DIR" "$ENV_NAME" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+repo_dir = Path(sys.argv[1])
+env_name = sys.argv[2]
+notebook_names = {
+    "01_cloud_yolo_dataset_prep.ipynb",
+    "02_cloud_yolo_training.ipynb",
+}
+notebooks = sorted(path for path in repo_dir.rglob("*.ipynb") if path.name in notebook_names)
+
+for notebook in notebooks:
+    if not notebook.exists():
+        print(f"WARNING: Notebook not found: {notebook}", file=sys.stderr)
+        continue
+
+    data = json.loads(notebook.read_text(encoding="utf-8"))
+    metadata = data.setdefault("metadata", {})
+    metadata["kernelspec"] = {
+        "display_name": f"Python ({env_name})",
+        "language": "python",
+        "name": env_name,
+    }
+    metadata.setdefault("language_info", {}).setdefault("name", "python")
+    notebook.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"Updated default kernel metadata: {notebook}")
+PY
+
 log "Checking optional workstation tools"
 if command -v gcloud >/dev/null 2>&1; then
     gcloud --version | head -n 1
@@ -187,7 +218,7 @@ cat <<EOF
 Setup complete.
 
 1. Refresh JupyterLab in the browser.
-2. Open the notebook and select the "Python ($ENV_NAME)" kernel.
+2. Open the notebook. The template notebooks should default to "Python ($ENV_NAME)".
 3. If imports fail in a notebook, confirm the notebook is using this kernel:
     import sys; print(sys.executable)
 4. Run: gcloud auth login
