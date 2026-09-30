@@ -241,3 +241,45 @@ conda deactivate
 conda activate "$TARGET_ENV"
 python -c "import torch; print('CUDA Available:', torch.cuda.is_available()); print('Device Count:', torch.cuda.device_count()); print('Device Name:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
 ```
+
+
+```
+# 1. Dynamically locate host NVIDIA driver directory
+CUDA_LIB_DIR=$(find /var /usr /opt /run -name "libcuda.so.1" 2>/dev/null | grep -v "/envs/" | grep -v "/conda" | head -n 1 | xargs dirname)
+
+if [ -z "$CUDA_LIB_DIR" ]; then
+    echo "ERROR: libcuda.so.1 not found on host filesystem."
+else
+    echo "Found NVIDIA host driver directory at: $CUDA_LIB_DIR"
+
+    # 2. Register path in system dynamic linker
+    echo "$CUDA_LIB_DIR" | sudo tee /etc/ld.so.conf.d/nvidia.conf > /dev/null
+    sudo ldconfig
+
+    # 3. Fix GPU device node permissions
+    sudo chmod 666 /dev/nvidia* /dev/nvidia-caps/* 2>/dev/null || true
+
+    # 4. Target active Conda environment
+    TARGET_ENV="${CONDA_DEFAULT_ENV:-yolo-cloud}"
+    ENV_PREFIX="${CONDA_PREFIX:-/home/conda/envs/$TARGET_ENV}"
+
+    # 5. Create library symlinks in Conda environment
+    ln -sf "$CUDA_LIB_DIR/libcuda.so.1" "$ENV_PREFIX/lib/libcuda.so.1"
+    ln -sf "$CUDA_LIB_DIR/libcuda.so.1" "$ENV_PREFIX/lib/libcuda.so"
+
+    # 6. Set LD_LIBRARY_PATH for current session & persist in Conda env
+    export LD_LIBRARY_PATH="$CUDA_LIB_DIR:$LD_LIBRARY_PATH"
+    conda env config vars set LD_LIBRARY_PATH="$CUDA_LIB_DIR:\$LD_LIBRARY_PATH" -n "$TARGET_ENV" > /dev/null 2>&1
+
+    # 7. Detect CPU-only PyTorch build and force-reinstall CUDA PyTorch if needed
+    IS_GPU_TORCH=$(python -c "import torch; print(1 if torch.version.cuda else 0)" 2>/dev/null || echo 0)
+    if [ "$IS_GPU_TORCH" -eq "0" ]; then
+        echo "CPU-only PyTorch build detected. Installing CUDA-enabled PyTorch (cu124)..."
+        pip install --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+    fi
+
+    # 8. Verify CUDA availability
+    echo -e "\n=== CUDA Status Check ==="
+    python -c "import torch; print('CUDA Available:', torch.cuda.is_available()); print('Device Count:', torch.cuda.device_count()); print('Device Name:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+fi
+```
