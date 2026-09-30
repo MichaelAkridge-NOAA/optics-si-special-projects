@@ -214,3 +214,30 @@ project_name/
 - Keep dataset yaml files versioned with the project.
 - Save all important runs under a clear run name.
 - Record class definitions and augmentation choices with the experiment.
+
+## Fix for GCP NVIDIA drivers(SSH)
+
+```
+# 1. Register GCP NVIDIA driver path system-wide
+echo "/var/lib/nvidia/lib64" | sudo tee /etc/ld.so.conf.d/nvidia.conf
+sudo ldconfig
+
+# 2. Fix GPU device node permissions
+sudo chmod 666 /dev/nvidia-caps/* 2>/dev/null || true
+
+# 3. Target active Conda environment (or default to yolo-cloud)
+TARGET_ENV="${CONDA_DEFAULT_ENV:-yolo-cloud}"
+ENV_PREFIX="${CONDA_PREFIX:-/home/conda/envs/$TARGET_ENV}"
+
+# 4. Create library symlinks in the Conda environment
+ln -sf /var/lib/nvidia/lib64/libcuda.so.1 "$ENV_PREFIX/lib/libcuda.so.1"
+ln -sf /var/lib/nvidia/lib64/libcuda.so.1 "$ENV_PREFIX/lib/libcuda.so"
+
+# 5. Persist LD_LIBRARY_PATH for the Conda environment
+conda env config vars set LD_LIBRARY_PATH=/var/lib/nvidia/lib64:$LD_LIBRARY_PATH -n "$TARGET_ENV"
+
+# 6. Reactivate environment and test CUDA status
+conda deactivate
+conda activate "$TARGET_ENV"
+python -c "import torch; print('CUDA Available:', torch.cuda.is_available()); print('Device Count:', torch.cuda.device_count()); print('Device Name:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+```
