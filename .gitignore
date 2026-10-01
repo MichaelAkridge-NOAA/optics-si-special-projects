@@ -14,3 +14,4 @@ projects/urchins/multi-class/v1/yolo26n.pt
 projects/urchins/multi-class/v1/yolo26m.pt
 *.pyc
 projects/urchins/multi-class/v0_baseline/20260217 - Urchin v0 Review.pdf
+/example
